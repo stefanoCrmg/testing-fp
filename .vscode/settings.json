@@ -1,0 +1,23 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "eslint.validate": [
+    "typescript",
+
+  ],
+  "workbench.colorCustomizations": {
+    "titleBar.activeForeground": "#15202b",
+    "titleBar.inactiveForeground": "#15202b99",
+    "titleBar.activeBackground": "#e4ed3f",
+    "titleBar.inactiveBackground": "#afb71e99",
+    "statusBar.background": "#e4ed3f",
+    "statusBar.foreground": "#15202b",
+    "activityBar.background": "#e4ed3f",
+    "activityBar.activeBackground": "#50bdc2",
+    "activityBar.activeBorder": "#1b9da4",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#1b9da4",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#858b17"
+  },
+}

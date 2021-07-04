@@ -1,0 +1,28 @@
+overwrite: true
+schema:
+  - ${HASURA_SCHEMA_URL}:
+      headers:
+        X-Hasura-Admin-Secret: ${HASURA_ADMIN_SECRET}
+hooks:
+  afterAllFileWrite:
+    - prettier --write
+generates:
+  ./graphql.schema.json:
+    plugins:
+      - 'introspection'
+  src/generated/graphql.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-resolvers'
+      - 'typescript-document-nodes'
+    # config:
+    #   enumsAsTypes: true
+    #   immutableTypes: true
+    #   namingConvention:
+    #     typeNames: change-case#pascalCase
+    #     enumValues: change-case#pascalCase
+    #     transformUnderscore: true
+    #   scalars:
+    #     float8: 'number'
+    #     uuid: 'string'
+    #     timestamp: 'string'
