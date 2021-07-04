@@ -6,16 +6,19 @@ import * as t from 'io-ts'
 import * as E from 'fp-ts/Either'
 import * as TE from 'fp-ts/TaskEither'
 import * as T from 'fp-ts/Task'
+import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
+import { readonlyNonEmptyArray } from 'io-ts-types'
 import { formatValidationErrors } from 'io-ts-reporters'
 import { loadEnvironment } from '../config/environment'
 import { PinoLogger } from '../logger-config'
+import * as S from 'fp-ts/lib/Semigroup'
 
-const SignupRouteParams = t.array(
+const SignupRouteParams = readonlyNonEmptyArray(
   t.type({
     name: t.string,
     email: t.string,
     vatcode: t.string,
-    roles: t.union([t.array(t.string), t.undefined]),
+    roles: t.union([readonlyNonEmptyArray(t.string), t.undefined]),
   })
 )
 type UsersArray = t.TypeOf<typeof SignupRouteParams>
@@ -45,7 +48,7 @@ const taskMgmt = (user: User) => {
             'vat-code': user.vatcode,
           },
         }),
-      (reason) => new Error(String(reason))
+      (reason) => new Error(String(`${user.email} - ${reason}`))
     )
   )
 }
@@ -59,38 +62,41 @@ const taskAuth = (user: User): TE.TaskEither<Error, void> => {
           email: user.email,
           connection: 'Username-Password-Authentication',
         }),
-      (reason) => new Error(String(reason))
+      (reason) => new Error(String(`${user.email} - ${reason}`))
     )
   )
 }
 
-const taskSignupAgency = (user: User) =>
+const taskSignupAgency = (user: User): TE.TaskEither<Error, User> =>
   pipe(
     user,
     taskMgmt,
-    TE.mapLeft((failure) => {
-      PinoLogger.logger.error(`1 - ${user.email} - ${failure}`)
-    }),
     TE.chain((_success) =>
       pipe(
         taskAuth(user),
         TE.bimap(
           (error) => {
-            PinoLogger.logger.error(`2 - ${user.email} - ${error}`)
+            PinoLogger.logger.error(error.message)
+            return error
           },
           (_) => {
             PinoLogger.logger.info('Agency registered')
+            return user
           }
         )
       )
     )
   )
 
-const signupMultipleAgencies = (users: UsersArray) =>
-  pipe(
-    users.map((user) => taskSignupAgency(user)),
-    T.sequenceArray
-  )()
+export const validate = <L, R>(
+  tasks: RNEA.ReadonlyNonEmptyArray<TE.TaskEither<L, R>>
+): TE.TaskEither<RNEA.ReadonlyNonEmptyArray<L>, RNEA.ReadonlyNonEmptyArray<R>> => {
+  return pipe(
+    tasks,
+    RNEA.traverse(TE.getApplicativeTaskValidation(T.ApplySeq, RNEA.getSemigroup<L>()))(TE.mapLeft(RNEA.of))
+  )
+}
+const signupMultipleAgencies = (users: UsersArray) => pipe(users, RNEA.map(taskSignupAgency), validate)
 
 const signupAgencies = async (req: Request, res: Response) => {
   const reqBody = SignupRouteParams.decode(req.body)
@@ -102,8 +108,13 @@ const signupAgencies = async (req: Request, res: Response) => {
         res.status(400).send(formatValidationErrors(failure))
       },
       (success) => {
-        req.log.info('Buono')
-        signupMultipleAgencies(success)
+        pipe(
+          signupMultipleAgencies(success),
+          TE.bimap(
+            (_failure) => res.status(400).send(_failure.map((e) => e.message)),
+            (success) => res.status(200).send(success)
+          )
+        )()
       }
     )
   )
