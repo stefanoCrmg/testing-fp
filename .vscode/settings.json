@@ -2,22 +2,22 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "eslint.validate": [
     "typescript",
-
   ],
   "workbench.colorCustomizations": {
     "titleBar.activeForeground": "#15202b",
     "titleBar.inactiveForeground": "#15202b99",
-    "titleBar.activeBackground": "#e4ed3f",
-    "titleBar.inactiveBackground": "#afb71e99",
-    "statusBar.background": "#e4ed3f",
+    "titleBar.activeBackground": "#d9e415",
+    "titleBar.inactiveBackground": "#d9e41599",
+    "statusBar.background": "#d9e415",
     "statusBar.foreground": "#15202b",
     "activityBar.background": "#e4ed3f",
-    "activityBar.activeBackground": "#50bdc2",
-    "activityBar.activeBorder": "#1b9da4",
+    "activityBar.activeBackground": "#e4ed3f",
+    "activityBar.activeBorder": "#10a7af",
     "activityBar.foreground": "#15202b",
     "activityBar.inactiveForeground": "#15202b99",
-    "activityBarBadge.background": "#1b9da4",
+    "activityBarBadge.background": "#10a7af",
     "activityBarBadge.foreground": "#e7e7e7",
-    "statusBarItem.hoverBackground": "#858b17"
+    "statusBarItem.hoverBackground": "#adb511"
   },
+  "peacock.color": "#d9e415",
 }

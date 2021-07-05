@@ -11,7 +11,7 @@ import { readonlyNonEmptyArray } from 'io-ts-types'
 import { formatValidationErrors } from 'io-ts-reporters'
 import { loadEnvironment } from '../config/environment'
 import { PinoLogger } from '../logger-config'
-import * as S from 'fp-ts/lib/Semigroup'
+// import * as S from 'fp-ts/lib/Semigroup'
 
 const SignupRouteParams = readonlyNonEmptyArray(
   t.type({
@@ -88,7 +88,7 @@ const taskSignupAgency = (user: User): TE.TaskEither<Error, User> =>
     )
   )
 
-export const validate = <L, R>(
+const partition = <L, R>(
   tasks: RNEA.ReadonlyNonEmptyArray<TE.TaskEither<L, R>>
 ): TE.TaskEither<RNEA.ReadonlyNonEmptyArray<L>, RNEA.ReadonlyNonEmptyArray<R>> => {
   return pipe(
@@ -96,7 +96,8 @@ export const validate = <L, R>(
     RNEA.traverse(TE.getApplicativeTaskValidation(T.ApplySeq, RNEA.getSemigroup<L>()))(TE.mapLeft(RNEA.of))
   )
 }
-const signupMultipleAgencies = (users: UsersArray) => pipe(users, RNEA.map(taskSignupAgency), validate)
+
+const signupMultipleAgencies = (users: UsersArray) => pipe(users, RNEA.map(taskSignupAgency), partition)
 
 const signupAgencies = async (req: Request, res: Response) => {
   const reqBody = SignupRouteParams.decode(req.body)
