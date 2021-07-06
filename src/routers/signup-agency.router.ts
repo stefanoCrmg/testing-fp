@@ -11,7 +11,6 @@ import { readonlyNonEmptyArray } from 'io-ts-types'
 import { formatValidationErrors } from 'io-ts-reporters'
 import { loadEnvironment } from '../config/environment'
 import { PinoLogger } from '../logger-config'
-// import * as S from 'fp-ts/lib/Semigroup'
 
 const SignupRouteParams = readonlyNonEmptyArray(
   t.type({
@@ -25,7 +24,6 @@ type UsersArray = t.TypeOf<typeof SignupRouteParams>
 type User = UsersArray[0]
 
 const environment = loadEnvironment()
-
 const auth0MgmtAPI = new ManagementClient({
   ...environment.auth0,
   scope: 'create:users',
@@ -34,36 +32,32 @@ const auth0AuthAPI = new AuthenticationClient({ ...environment.auth0 })
 
 const taskMgmt = (user: User) => {
   PinoLogger.logger.info(`${user.email}: Creating account for ${user.email}`)
-  return pipe(
-    TE.tryCatch(
-      () =>
-        auth0MgmtAPI.createUser({
-          connection: 'Username-Password-Authentication',
-          email_verified: false,
-          password: crypto.randomBytes(32).toString('base64'),
-          verify_email: true,
-          name: user.name,
-          email: user.email,
-          app_metadata: {
-            'vat-code': user.vatcode,
-          },
-        }),
-      (reason) => new Error(String(`${user.email} - ${reason}`))
-    )
+  return TE.tryCatch(
+    () =>
+      auth0MgmtAPI.createUser({
+        connection: 'Username-Password-Authentication',
+        email_verified: false,
+        password: crypto.randomBytes(32).toString('base64'),
+        verify_email: true,
+        name: user.name,
+        email: user.email,
+        app_metadata: {
+          'vat-code': user.vatcode,
+        },
+      }),
+    (reason) => new Error(String(`${user.email} - ${reason}`))
   )
 }
 
 const taskAuth = (user: User): TE.TaskEither<Error, void> => {
   PinoLogger.logger.info(`${user.email}: Sending email reset password to ${user.email}`)
-  return pipe(
-    TE.tryCatch(
-      () =>
-        auth0AuthAPI.requestChangePasswordEmail({
-          email: user.email,
-          connection: 'Username-Password-Authentication',
-        }),
-      (reason) => new Error(String(`${user.email} - ${reason}`))
-    )
+  return TE.tryCatch(
+    () =>
+      auth0AuthAPI.requestChangePasswordEmail({
+        email: user.email,
+        connection: 'Username-Password-Authentication',
+      }),
+    (reason) => new Error(String(`${user.email} - ${reason}`))
   )
 }
 
@@ -71,20 +65,16 @@ const taskSignupAgency = (user: User): TE.TaskEither<Error, User> =>
   pipe(
     user,
     taskMgmt,
-    TE.chain((_success) =>
-      pipe(
-        taskAuth(user),
-        TE.bimap(
-          (error) => {
-            PinoLogger.logger.error(error.message)
-            return error
-          },
-          (_) => {
-            PinoLogger.logger.info('Agency registered')
-            return user
-          }
-        )
-      )
+    TE.chain(() => taskAuth(user)),
+    TE.bimap(
+      (error) => {
+        PinoLogger.logger.error(error.message)
+        return error
+      },
+      () => {
+        PinoLogger.logger.info('Agency registered')
+        return user
+      }
     )
   )
 
@@ -98,17 +88,16 @@ const partition = <L, R>(
 }
 
 const signupMultipleAgencies = (users: UsersArray) => pipe(users, RNEA.map(taskSignupAgency), partition)
-
 const signupAgencies = async (req: Request, res: Response) => {
   const reqBody = SignupRouteParams.decode(req.body)
-  pipe(
+  return pipe(
     reqBody,
     E.fold(
       (failure) => {
         req.log.error(formatValidationErrors(failure))
         res.status(400).send(formatValidationErrors(failure))
       },
-      (success) => {
+      (success) =>
         pipe(
           signupMultipleAgencies(success),
           TE.bimap(
@@ -116,7 +105,6 @@ const signupAgencies = async (req: Request, res: Response) => {
             (success) => res.status(200).send(success)
           )
         )()
-      }
     )
   )
 }
