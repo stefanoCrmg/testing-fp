@@ -15,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.13.0",
     "@aws-sdk/s3-request-presigner": "^3.13.0",
+    "@prisma/client": "^2.27.0",
     "@types/auth0": "^2.33.3",
     "@types/body-parser": "^1.19.0",
     "@types/express-pino-logger": "^4.0.2",
@@ -34,7 +35,8 @@
     "monocle-ts": "^2.3.10",
     "newtype-ts": "^0.3.4",
     "nodemon": "^2.0.7",
-    "pino-pretty": "^5.0.2"
+    "pino-pretty": "^5.0.2",
+    "prisma": "^2.27.0"
   },
   "devDependencies": {
     "@types/dotenv": "^6.1.1",

@@ -1,5 +1,5 @@
 import express, { Request, Response, Router } from 'express'
-import { ManagementClient, AuthenticationClient } from 'auth0'
+import { ManagementClient, AuthenticationClient, UserMetadata, AppMetadata, User } from 'auth0'
 import * as crypto from 'crypto'
 import { pipe } from 'fp-ts/lib/function'
 import * as t from 'io-ts'
@@ -11,6 +11,8 @@ import { readonlyNonEmptyArray } from 'io-ts-types'
 import { formatValidationErrors } from 'io-ts-reporters'
 import { loadEnvironment } from '../config/environment'
 import { PinoLogger } from '../logger-config'
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
 
 const SignupRouteParams = readonlyNonEmptyArray(
   t.type({
@@ -20,8 +22,16 @@ const SignupRouteParams = readonlyNonEmptyArray(
     roles: t.union([readonlyNonEmptyArray(t.string), t.undefined]),
   })
 )
+
 type UsersArray = t.TypeOf<typeof SignupRouteParams>
-type User = UsersArray[0]
+type UserFromAPI = UsersArray[0]
+
+const UserFromAuth0 = t.type({
+  name: t.string,
+  email: t.string,
+  user_id: t.string,
+  app_metadata: t.type({ 'vat-code': t.string }),
+})
 
 const environment = loadEnvironment()
 const auth0MgmtAPI = new ManagementClient({
@@ -30,7 +40,29 @@ const auth0MgmtAPI = new ManagementClient({
 })
 const auth0AuthAPI = new AuthenticationClient({ ...environment.auth0 })
 
-const taskMgmt = (user: User) => {
+const taskWriteToDB = (user: User<AppMetadata, UserMetadata>) => {
+  PinoLogger.logger.info(`Writing to DB`)
+  return pipe(
+    UserFromAuth0.decode(user),
+    E.mapLeft(() => new Error(String(`User wasnt properly registered on auth0`))),
+    TE.fromEither,
+    TE.chain((success) =>
+      TE.tryCatch(
+        () =>
+          prisma.agencies.create({
+            data: {
+              name: success.name,
+              vat_code: success.app_metadata['vat-code'],
+              auth0_id: success.user_id,
+            },
+          }),
+        (reason) => new Error(String(`${success.email} - ${reason}`))
+      )
+    )
+  )
+}
+
+const taskMgmt = (user: UserFromAPI) => {
   PinoLogger.logger.info(`${user.email}: Creating account for ${user.email}`)
   return TE.tryCatch(
     () =>
@@ -49,7 +81,7 @@ const taskMgmt = (user: User) => {
   )
 }
 
-const taskAuth = (user: User): TE.TaskEither<Error, void> => {
+const taskAuth = (user: UserFromAPI): TE.TaskEither<Error, void> => {
   PinoLogger.logger.info(`${user.email}: Sending email reset password to ${user.email}`)
   return TE.tryCatch(
     () =>
@@ -61,10 +93,11 @@ const taskAuth = (user: User): TE.TaskEither<Error, void> => {
   )
 }
 
-const taskSignupAgency = (user: User): TE.TaskEither<Error, User> =>
+const taskSignupAgency = (user: UserFromAPI): TE.TaskEither<Error, UserFromAPI> =>
   pipe(
     user,
     taskMgmt,
+    TE.chain(taskWriteToDB),
     TE.chain(() => taskAuth(user)),
     TE.bimap(
       (error) => {
