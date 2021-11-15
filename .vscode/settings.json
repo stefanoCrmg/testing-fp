@@ -1,8 +1,6 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "eslint.validate": [
-    "typescript",
-  ],
+  "eslint.validate": ["typescript"],
   "workbench.colorCustomizations": {
     "titleBar.activeForeground": "#15202b",
     "titleBar.inactiveForeground": "#15202b99",
@@ -17,7 +15,13 @@
     "activityBar.inactiveForeground": "#15202b99",
     "activityBarBadge.background": "#10a7af",
     "activityBarBadge.foreground": "#e7e7e7",
-    "statusBarItem.hoverBackground": "#adb511"
+    "statusBarItem.hoverBackground": "#adb511",
+    "editorGroup.border": "#e4ed3f",
+    "panel.border": "#e4ed3f",
+    "sash.hoverBorder": "#e4ed3f",
+    "sideBar.border": "#e4ed3f",
+    "statusBarItem.remoteBackground": "#d9e415",
+    "statusBarItem.remoteForeground": "#15202b"
   },
-  "peacock.color": "#d9e415",
+  "peacock.color": "#d9e415"
 }

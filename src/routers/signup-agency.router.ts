@@ -6,6 +6,7 @@ import * as t from 'io-ts'
 import * as E from 'fp-ts/Either'
 import * as TE from 'fp-ts/TaskEither'
 import * as T from 'fp-ts/Task'
+import * as C from 'fp-ts/Console'
 import * as RNEA from 'fp-ts/ReadonlyNonEmptyArray'
 import { readonlyNonEmptyArray } from 'io-ts-types'
 import { formatValidationErrors } from 'io-ts-reporters'
@@ -81,34 +82,45 @@ const taskMgmt = (user: UserFromAPI) => {
   )
 }
 
-const taskAuth = (user: UserFromAPI): TE.TaskEither<Error, void> => {
-  PinoLogger.logger.info(`${user.email}: Sending email reset password to ${user.email}`)
-  return TE.tryCatch(
-    () =>
-      auth0AuthAPI.requestChangePasswordEmail({
-        email: user.email,
-        connection: 'Username-Password-Authentication',
-      }),
-    (reason) => new Error(String(`${user.email} - ${reason}`))
-  )
-}
+// pipe(
+//   C.info(`${user.email}: Sending email reset password to ${user.email}`),
+//   TE.fromIO,
+//   TE.tryCatch(
+//   () =>
+//     auth0AuthAPI.requestChangePasswordEmail({
+//       email: user.email,
+//       connection: 'Username-Password-Authentication',
+//     }),
+//   (reason) => new Error(String(`${user.email} - ${reason}`))
+// ))
 
-const taskSignupAgency = (user: UserFromAPI): TE.TaskEither<Error, UserFromAPI> =>
+const taskAuth = (user: UserFromAPI): TE.TaskEither<Error, void> => 
   pipe(
-    user,
-    taskMgmt,
-    TE.chain(taskWriteToDB),
-    TE.chain(() => taskAuth(user)),
+    C.info(`${user.email}: Sending email reset password to ${user.email}`),
+    TE.fromIO,
+    TE.chain(
+      () => TE.tryCatch(
+        () =>
+          auth0AuthAPI.requestChangePasswordEmail({
+            email: user.email,
+            connection: 'Username-Password-Authentication',
+          }),
+        (reason) => new Error(String(`${user.email} - ${reason}`))
+      )
+    ))
+
+
+const taskSignupAgency = (user: UserFromAPI) =>
+  pipe(
+    TE.Do,
+    TE.apS('user', TE.right(user)),
+    TE.chainFirst(({ user }) => taskMgmt(user)),
+    TE.chain(({ user }) => taskAuth(user)),
+    TE.chainIOK(() => C.info('Agency registered')),
     TE.bimap(
-      (error) => {
-        PinoLogger.logger.error(error.message)
-        return error
-      },
-      () => {
-        PinoLogger.logger.info('Agency registered')
-        return user
-      }
-    )
+      C.error,
+      C.info('Agency registered')
+    ),
   )
 
 const partition = <L, R>(
