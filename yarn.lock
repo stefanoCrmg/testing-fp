@@ -2691,13 +2691,6 @@ csv-parse@^5.0.1:
   resolved "https://registry.yarnpkg.com/csv-parse/-/csv-parse-5.0.1.tgz#01368a30152023022dce67f653505bcbb29322e5"
   integrity sha512-K1WfnyENJincXFtyHEA6DSe16+/aVdU6TCTqvJw+BouVNiovn1hBpO3BCGFPIhVnndy7c+2IOMMNEFir6Snh4Q==
 
-csv-parser@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/csv-parser/-/csv-parser-3.0.0.tgz#b88a6256d79e090a97a1b56451f9327b01d710e7"
-  integrity sha512-s6OYSXAK3IdKqYO33y09jhypG/bSDHPuyCme/IdEHfWpLf/jKcpitVFyOC6UemgGk8v7Q5u2XE0vvwmanxhGlQ==
-  dependencies:
-    minimist "^1.2.0"
-
 cycle@1.0.x:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/cycle/-/cycle-1.0.3.tgz#21e80b2be8580f98b468f379430662b046c34ad2"
